@@ -1,0 +1,147 @@
+body{
+    background-color: #e4effc;
+}
+
+.header{
+    height: 100px;
+    background-color: #dbecff;
+    justify-content: center;
+    margin-bottom: 30px;
+    align-items: center;
+    display: flex;
+}
+
+#today{
+    width: 100%;
+    max-width: 1300px;
+    background-color: #dbecff;
+    margin-left: auto;
+    margin-right: auto;
+    padding-bottom: 20px;
+}
+
+.title{
+    color: #2c36ee;
+    text-align: center;
+    flex: 1;
+    order: 1;
+    justify-content: center;
+    align-items: center;
+    font-size: 50px;
+    font-family: "Mbc 1961 Otf M", sans-serif;
+    display: block;
+}
+
+.titleText{
+    color: #2c36ee;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 20px;
+    font-family: "Mbc 1961 Otf M", sans-serif;
+    font-size: 40px;
+    position: static;
+}
+
+.div1 {
+    display: flex;
+}
+  
+.curnutrients {
+    flex-direction: column;
+    flex: 1;
+    margin-left: 20px;
+    padding-top: 20px;
+    padding-left: 20px;
+    display: flex;
+}
+
+.contentText{
+    color: #000;
+    padding-bottom: 20px;
+    padding-left:20px;
+    font-family: Suite, sans-serif;
+    font-size: 30px;
+}
+
+.graph {
+    width: 40%;
+    height: 300px;
+    object-fit: contain;
+  }
+
+#input {
+    width: 100%;
+    height: 300px;
+    max-width: 1300px;
+    background-color: #dbecff;
+    flex-flow: wrap;
+    justify-content: center;
+    align-self: center;
+    margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+}
+
+.input{
+    background-color: rgba(0, 0, 0, 0);
+
+    border: 1px #000;
+    border-bottom: 2px solid #6d6d6d;
+    align-self: auto;
+}
+
+.subminBtn{
+    width: 60px;
+    height: 40px;
+    color: #2c36ee;
+    object-fit: fill;
+    background-color: rgba(0, 0, 0, 0);
+    border: 1px #000;
+    border-radius: 0;
+    padding: 0;
+    font-size:20px;
+    font-family: Suite, sans-serif;
+    cursor: pointer;
+}
+
+.div2{
+    flex-direction: column;
+    flex: 1;
+    display: flex;
+}
+
+.divLine{
+    width: 2px;
+    border-right: 2px solid #2c36ee;
+    margin-right: 10px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.formDiv{
+    padding-left: 20px;
+    padding-right: 10px;
+}
+
+.class{
+    width: 40%;
+    flex-direction: row;
+    font-size: 50%;
+    display: flex;
+}
+
+li{
+    font-family: Suite, sans-serif;
+    font-size: 20px;
+}
+
+@font-face {
+    font-family: 'Suite';
+    src: url("SUITE-SemiBold.ttf");
+}
+
+@font-face {
+    font-family: 'Mbc 1961 Otf M';
+    src: url("MBC\ 1961\ OTF\ M.otf");
+}
