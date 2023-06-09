@@ -14,19 +14,19 @@
                 <form id="gender" class="form" method="POST" action="/gender">
                     <div class="formDiv">
                     <label style="font-size: 20px; font-family: Suite;">
-                        <input type="radio" name="gender" value="male" {% if gender_selected =="male" %} checked="checked" {% endif %}> 남성</label>
+                        <input type="radio" name="gender" value="male" {% if params.gender_selected =="male" %} checked="checked" {% endif %}> 남성</label>
                     <label style="font-size: 20px; font-family: Suite;">
-                        <input type="radio" name="gender" value="female" {% if gender_selected =="female" %} checked="checked" {% endif %} >여성</label>
+                        <input type="radio" name="gender" value="female" {% if params.gender_selected =="female" %} checked="checked" {% endif %} >여성</label>
                         <input type="submit" value="선택" class="subminBtn">
                     </div>
                 </form>
                 <div class="div1" display= flex>
                     <img src="{{url_for('static', filename='IMG_2744.JPG')}}" class="graph"/>
                     <div class="curNutrients">
-                        <div id="curCarb" class="contentText">탄수화물</div>
-                        <div id="curProtein" class="contentText">단백질</div>
-                        <div id="curFat" class="contentText">지방</div>
-                        <div id="curKcal" class="contentText">칼로리</div>
+                        <div id="curCarb" class="contentText">{{"탄수화물: " + params.curCarb + "g"}}</div>
+                        <div id="curProtein" class="contentText">{{"단백질: " + params.curProtein + "g"}}</div>
+                        <div id="curFat" class="contentText">{{"지방: " + params.curFat + "g"}}</div>
+                        <div id="curKcal" class="contentText">{{"열량: " + params.curKcal + "kcal"}}</div>
                     </div>
                 </div>
             </div>
@@ -36,20 +36,32 @@
                     <h1 class="titleText">먹었어요</h1>
                     <div>
                         <ul role="list" class="list">
-                            {% for food in foodList %}
+                            {% for food in params.foodList %}
                             <li>{{ food }}</li>
                             {% endfor %}
                         </ul>
                         <div>
-                            <form id="eatingForm" method="POST" class="form" action="/list">
+                            <form method="POST" class="form" action="/search">
                                 <div class="formDiv">
                                     <input type="text" class="input" name = "food" style="height: auto;"/>
+                                    <input type="submit" value="검색" class="subminBtn"/>
+                                </div>
+                            </form>
+
+                            <form method="POST" action="/list">
+                                <div class="formDiv">
+                                    <select name="foodName">
+                                        {% for food in params.foodOptions %}
+                                        <option value="{{food['식품명']}}">{{food["식품명"]+ ": 1회제공량 " + food["1회제공량"] + food["단위"]}}</option>
+                                        {% endfor %}
+                                        </select>
                                     <select name="servings">
                                     <option value=1>1인분</option>
                                     <option value=1.5>1.5인분</option>
                                     <option value=2>2인분</option>
                                     <option value=2.5>2.5인분</option>
                                     <option value=3>3인분</option>
+                                </select>
                                     <input type="submit" value="추가" class="subminBtn"/>
                                 </div>
                             </form>
@@ -60,20 +72,29 @@
                 <div class="divLine"></div>
                 <div class="div2">
                     <h1 class="titleText">뭐 먹지?</h1>
-                    <div id="lack" class="contentText">{{lackStr}}</div>
+                    <div id="lack" class="contentText">{{params.lackStr}}</div>
                     <div class="titleText" style="font-size: 30px;">성분별 추천 음식이 알고싶다면</div>
 
                     <form id="recommend" class="form" method="POST" action="/recommend">
                         <div class="formDiv">
                         <label style="font-size: 20px; font-family: Suite;">
-                            <input type="radio" name="recommend" value="탄수화물" {% if recommend_selected =="탄수화물" %} checked="checked" {% endif %}> 탄수화물</label>
+                            <input type="radio" name="recommend" value="탄수화물" {% if params.recommend_selected =="탄수화물" %} checked="checked" {% endif %}> 탄수화물</label>
                         <label style="font-size: 20px; font-family: Suite;">
-                            <input type="radio" name="recommend" value="단백질" {% if recommend_selected =="단백질" %} checked="checked" {% endif %} > 단백질</label>
+                            <input type="radio" name="recommend" value="단백질" {% if params.recommend_selected =="단백질" %} checked="checked" {% endif %} > 단백질</label>
                         <label style="font-size: 20px; font-family: Suite;">
-                            <input type="radio" name="recommend" value="지방" {% if recommend_selected =="지방" %} checked="checked" {% endif %} > 지방</label>
+                            <input type="radio" name="recommend" value="지방" {% if params.recommend_selected =="지방" %} checked="checked" {% endif %} > 지방</label>
                             <input type="submit" value="목록 보기" class="subminBtn" style="width: 100px;">
                         </div>
                     </form>
+                    <div>
+                        <ul role="list" class="list" style="padding-bottom: 20px;">
+                            {% if params.recList.count != 0 %}
+                                {% for food in params.recList %}
+                                <li>{{food["식품명"] + ": " + food["성분"] + "g, " + food["열량"] + "kcal"}}</li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
                 </div>
         </div>
 

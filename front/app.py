@@ -6,9 +6,12 @@ app.config["MONGO_URI"] = "mongodb://localhost:27017/nutrient"
 mongo = PyMongo(app)
 
 foodList = []  # 섭취목록이 저장됨
+foodName = ""  # 가장 최근 입력된 음식 이름
 gender = "male"  # 성별, 기본값은 남성
-recommend = "탄수화물"  # 추천할 성분, 기본값 탄수화물
+recKeyWord = "탄수화물"  # 추천할 성분, 기본값 탄수화물
+recList = []
 servings = 0  # 몇 인분
+foodOptions = []
 
 # 대현님이 사용하실 변수들(라우트 함수 내에서 global 키워드 붙여서 전역변수로 사용)
 curCarb = 0  # 현재까지의 탄수화물 섭취량
@@ -31,7 +34,8 @@ for food in foodList:
 
     # mongoDB에서 음식 정보 가져오기
     # collection에 컬렉션 이름 입력
-    food_info = mongo.db.collection.find_one({"name": foodList}, {"탄수화물(g)": 1, "단백질(g)": 1, "지방(g)": 1, "에너지(kcal)": 1})
+    food_info = mongo.db.col_3.find_one(
+        {"name": foodList}, {"탄수화물(g)": 1, "단백질(g)": 1, "지방(g)": 1, "에너지(kcal)": 1})
 
     # 음식 정보 추출해서 cur 변수에 저장
     if food_info:
@@ -44,6 +48,7 @@ for food in foodList:
         curProtein += protein * servings
         curFat += fat * servings
         curKcal += kcal * servings
+        print(curCarb)
 
 lack = []  # 권장 섭취량 대비 부족한 성분, str, "탄수화물"/"단백질"/"지방"
 
@@ -72,24 +77,72 @@ lackStr = ""  # 템플릿에 전달할 문자열
 
 #
 
+# 단순 성분별 내림차순
+
+
+def getRecFoodList(recKeyWord):
+    print(recKeyWord)
+    global recList
+    recList.clear()
+    recKeyWord += "(g)"
+    pipelines = [{'$sort': {recKeyWord: -1}}, {'$limit': 5},
+                 {'$project': {"식품명": 1, "에너지(kcal)": 1, recKeyWord: 1, '_id': 0}}]
+    # 1g미만 수정 필요
+    result = mongo.db.col_3.aggregate(pipelines)
+
+    for food in result:
+        foodDict = {"식품명": food["식품명"],
+                    "성분": str(food[recKeyWord]), "열량": str(food["에너지(kcal)"])}
+        recList.append(foodDict)
+
 
 @app.route('/')
 def index():
-    return render_template('index.html', foodList=foodList, gender_selected=gender, recommend_selected=recommend, lackStr=lackStr)
+    params = {
+        "foodList": foodList,
+        "gender_selected": gender,
+        "recommend_selected": recKeyWord,
+        "lackStr": lackStr,
+        "curCarb": str(curCarb),
+        "curProtein": str(curProtein),
+        "curFat": str(curFat),
+        "curKcal": str(curKcal),
+        "recList": recList,
+        "recKeyWord": recKeyWord+"(g)",
+        "foodOptions": foodOptions
+    }
 
-# 식품명, 섭취량 읽어오기
+    return render_template('index.html', params=params)
+
+
+@app.route('/search', methods=['POST'])
+def searchFoodList():
+    global foodName, foodDict
+    foodName = request.form.get('food')
+    pipelines = [{"$match": {"식품명": {"$regex": "^"+foodName}}}, {"$sort": {"에너지(kcal)": 1}}, {
+        "$project": {"_id": 0, "식품명": 1, "에너지(kcal)": 1, "1회제공량": 1, "내용량_단위": 1}}, {"$limit": 10}]
+
+    result = mongo.db.col_3.aggregate(pipelines)
+
+    for food in result:
+        foodDict = {"식품명": food["식품명"],
+                    "1회제공량": str(food["1회제공량"]), "단위": food["내용량_단위"]}
+        foodOptions.append(foodDict)
+
+    return redirect(url_for('index'))
 
 
 @app.route('/list', methods=['POST'])
 def getFoodList(food="None"):
-    global servings
-    foodList.append(request.form.get('food'))
+    global servings, foodName
+    foodName = request.form.get('foodName')
+    print(foodName)
+    foodList.append(foodName)
     servings = request.form.get('servings')
-    print(servings)
     return redirect(url_for('index'))
 
-# 성별 읽어오기
 
+# 성별 읽어오기
 
 @app.route('/gender', methods=['POST'])
 def getGender():
@@ -104,9 +157,10 @@ def getGender():
 # 검색할 성분 읽어오기
 @app.route('/recommend', methods=['POST'])
 def getRecommendWord():
-    global recommend
+    global recKeyWord
     if request.method == 'POST':
-        recommend = request.form.get('recommend')
+        recKeyWord = request.form.get('recommend')
+        getRecFoodList(recKeyWord=recKeyWord)
         return redirect(url_for('index'))
 
 
