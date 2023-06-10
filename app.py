@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_pymongo import PyMongo
-from datetime import datetime
+from datetime import datetime,timedelta
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/nutrient"
@@ -86,14 +86,18 @@ lackStr = ""  # 템플릿에 전달할 문자열
 
 #
 
-def Week_Check(date):#기록된 음식의 date와 현재 주차가 같은지 확인
-    date_convert=datetime.strptime(date, '%Y-%m-%d')#date를 날짜 형식으로 변환
-    current_week = datetime.now().isocalendar()[1]#현재 주차
-    date_week = date_convert.isocalendar()[1]#기록된 주차
-    if(date_week==current_week):
-        return date_convert.strftime('%a')# "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" 반환
-    else:
-        return None
+def Week():#현재 주차의 월~일까지의 날짜 str list 반환
+    now = datetime.now()
+    start_of_week = now - timedelta(days=now.weekday())  # 현재 주의 월요일 날짜 계산
+    end_of_week = start_of_week + timedelta(days=6)  # 현재 주의 일요일 날짜 계산
+    Week_array=[]#해당 주차의 날짜 반환용
+    # 월요일부터 일요일까지의 날짜 출력
+    current_date = start_of_week
+    while current_date <= end_of_week:
+        Week_array.append(current_date.strftime('%Y-%m-%d'))
+        current_date += timedelta(days=1)
+    return Week_array
+
 def insert_collection(find_food,servings):#찾은 음식과 인분 수 넣으면
     global curFat,curKcal,curCarb,curProtein
     date=datetime.now().strftime('%Y-%m-%d')#현재의 날짜를 저장
