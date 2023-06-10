@@ -21,7 +21,7 @@
                     </div>
                 </form>
                 <div class="div1" display= flex>
-                    <img src="{{url_for('static', filename='IMG_2744.JPG')}}" class="graph"/>
+                    <img src="{{ params.graph }}" class="graph"/>
                     <div class="curNutrients">
                         <div id="curCarb" class="contentText">{{"탄수화물: " + params.curCarb + "g"}}</div>
                         <div id="curProtein" class="contentText">{{"단백질: " + params.curProtein + "g"}}</div>
@@ -29,6 +29,15 @@
                         <div id="curKcal" class="contentText">{{"열량: " + params.curKcal + "kcal"}}</div>
                     </div>
                 </div>
+                <form id="graph" class="form" method="POST" action="/graph">
+                    <div class="formDiv">
+                    <label style="font-size: 20px; font-family: Suite;">
+                        <input type="radio" name="graphMode" value="today" {% if params.graphMode_selected =="today" %} checked="checked" {% endif %}> 일일</label>
+                    <label style="font-size: 20px; font-family: Suite;">
+                        <input type="radio" name="graphMode" value="weekly" {% if params.graphMode_selected =="weekly" %} checked="checked" {% endif %} > 주간</label>
+                        <input type="submit" value="선택" class="subminBtn">
+                    </div>
+                </form>
             </div>
 
             <div id="input">

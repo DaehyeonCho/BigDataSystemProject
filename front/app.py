@@ -1,5 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for
+import base64
+from io import BytesIO
+from flask import Flask, render_template, request, redirect, url_for, Response
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from flask_pymongo import PyMongo
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/nutrient"
@@ -28,6 +36,69 @@ recCarbWoman = 205  # 여자 권장 탄수화물 섭취량
 recProteinWoman = 60  # 여자 권장 단백질 섭취량
 recFatWoman = 65  # 여자 권장 지방 섭취량
 recKcalWoman = 2100  # 여자 권장 섭취 칼로리
+
+recCarb = [recCarbMan, recCarbWoman]
+recProtein = [recProteinMan, recProteinWoman]
+recFat = [recFatMan, recFatWoman]
+recKcal = [recKcalMan, recKcalWoman]
+
+graphMode = "today"
+
+
+def drawTodayGraph():
+    g = 0
+
+    if gender == "male":
+        g = 0
+    else:
+        g = 1
+
+    words = ["carbo", "protein", "fat", "kcal"]
+    # value1 = [curCarb, curProtein, curFat, curKcal]
+    # value2 = [recCarb[g], recProtein[g], recFat[g], recKcal[g]]
+
+    # 그래프 테스트용 데이터
+    value1 = [130, 57, 30, 1200]
+    value2 = [205, 60, 65, 2100]
+    df = pd.DataFrame({'cur': value1, 'rec': value2}, index=words)
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    index = np.arange(4)
+    bar1 = plt.bar(index - 0.15, df['cur'], 0.3,
+                   alpha=0.4, color='blue', label="intake")
+    bar2 = plt.bar(index + 0.15, df['rec'], 0.3,
+                   alpha=0.4, color='purple', label="recommend")
+
+    # 막대 안에 값을 표시
+    for i, rect in enumerate(bar1):
+        height = rect.get_height()
+        plt.text(rect.get_x() + rect.get_width() / 2,
+                 height, value1[i], ha='center', va='bottom')
+
+    for i, rect in enumerate(bar2):
+        height = rect.get_height()
+        plt.text(rect.get_x() + rect.get_width() / 2,
+                 height, value2[i], ha='center', va='bottom')
+
+    plt.xticks(np.arange(0, 4, 1), words)
+    plt.xlabel('nutrients', size=13)
+    plt.legend()
+
+    canvas = FigureCanvas(fig)
+    png_output = BytesIO()
+    canvas.print_png(png_output)
+    png_output.seek(0)
+    png_as_string = base64.b64encode(png_output.getvalue()).decode()
+
+    return png_as_string
+
+
+@app.route('/graph', methods=['POST'])
+def getGraph():
+    global graphMode
+    graphMode = request.form.get('graphMode')
+    return redirect(url_for('index'))
+
 
 # 현재까지 섭취한 영양분 계산
 for food in foodList:
@@ -98,10 +169,18 @@ def getRecFoodList(recKeyWord):
 
 @app.route('/')
 def index():
+
+    if graphMode == "today":
+        image_data = drawTodayGraph()
+    else:
+        image_data = drawTodayGraph()
+        # 추후 주간 그래프 그리는 함수 호출로 수정
+
     params = {
         "foodList": foodList,
         "gender_selected": gender,
         "recommend_selected": recKeyWord,
+        "graphMode_selected": graphMode,
         "lackStr": lackStr,
         "curCarb": str(curCarb),
         "curProtein": str(curProtein),
@@ -109,7 +188,8 @@ def index():
         "curKcal": str(curKcal),
         "recList": recList,
         "recKeyWord": recKeyWord+"(g)",
-        "foodOptions": foodOptions
+        "foodOptions": foodOptions,
+        "graph": "data:image/png;base64," + image_data
     }
 
     return render_template('index.html', params=params)

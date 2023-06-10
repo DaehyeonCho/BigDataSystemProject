@@ -64,7 +64,7 @@ body{
 }
 
 .graph {
-    width: 40%;
+    width: 60%;
     height: 300px;
     object-fit: contain;
   }
@@ -127,7 +127,6 @@ body{
 .class{
     width: 40%;
     flex-direction: row;
-    font-size: 50%;
     display: flex;
 }
 
