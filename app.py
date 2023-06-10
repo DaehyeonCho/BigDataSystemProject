@@ -84,6 +84,11 @@ def lackfound():
 
 lackStr = ""  # 템플릿에 전달할 문자열
 
+for item in lack:
+    lackStr += f"{item} "
+
+lackStr += "영양소가 부족합니다."
+
 #
 
 def Week():#현재 주차의 월~일까지의 날짜 str list 반환
