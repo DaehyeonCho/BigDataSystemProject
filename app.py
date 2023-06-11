@@ -190,25 +190,25 @@ def nutrient_pie_chart():
 
     fig, ax = plt.subplots()
     ax.pie(carbohydrate_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.set_title("Carbohydrate Intake Ratio")
+    ax.set_title("탄수화물 섭취 비율")
 
     plt.show()
 
     fig, ax = plt.subplots()
     ax.pie(protein_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.set_title("Protein Intake Ratio")
+    ax.set_title("단백질 섭취 비율")
 
     plt.show()
 
     fig, ax = plt.subplots()
     ax.pie(fat_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.set_title("Fat Intake Ratio")
+    ax.set_title("지방 섭취 비율")
 
     plt.show()
 
     fig, ax = plt.subplots()
     ax.pie(kcal_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.set_title("Kcal Intake Ratio")
+    ax.set_title("에너지 섭취 비율")
 
     plt.show()
 
