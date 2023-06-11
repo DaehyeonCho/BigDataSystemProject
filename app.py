@@ -154,7 +154,7 @@ def nutrient_pie_chart():
 
     # 날짜별 영양소 섭취량 조회
     pipeline = [
-        {"$match": {"섭취일": {"$gte": seven_days_ago_str, "$lte": today_str}}},
+        {"$match": {"섭취일": {"$gte": seven_days_ago_str, "$lt": today_str}}},
         {"$group": {
             "_id": "$섭취일",
             "total_carbohydrate": {"$sum": "$탄수화물(g)"},
