@@ -15,6 +15,15 @@ app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/nutrient"
 mongo = PyMongo(app)
 
+########################index
+mongo.db.collection1.create_index([("단백질(g)",-1),("1회제공량",1)])
+mongo.db.collection1.create_index([("지방(g)",-1),("1회제공량",1)])
+mongo.db.collection1.create_index([("탄수화물(g)",-1),("1회제공량",1)])
+mongo.db.collection1.create_index([("에너지(kcal)",-1),("1회제공량",1)])
+mongo.db.collection1.create_index([("식품명",1),("에너지(kcal)",1)])
+mongo.db.collection2.create_index([("섭취일",1)])
+
+
 foodList = []  # 섭취목록이 저장됨
 foodName = ""  # 가장 최근 입력된 음식 이름
 gender = "male"  # 성별, 기본값은 남성
