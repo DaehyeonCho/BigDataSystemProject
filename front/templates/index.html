@@ -82,6 +82,18 @@
                 <div class="div2">
                     <h1 class="titleText">뭐 먹지?</h1>
                     <div id="lack" class="contentText">{{params.lackStr}}</div>
+                    {% if params.recommend_result.count != 0 %}
+                        {% for key, value in params.recommend_result.items() %}
+                        <div class="contentText" style="padding-left: 20px;color: #2c36ee;font-size:25px;padding-bottom: 10px;"> -
+                            {{key}} </div>
+                        <ul role="list" class="list" style="padding-bottom:10px; margin-top:0px;">
+                            {% for food in value%}
+                            <li>{{food}}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endfor %}
+                    {% endif %}
+
                     <div class="titleText" style="font-size: 30px;">성분별 추천 음식이 알고싶다면</div>
 
                     <form id="recommend" class="form" method="POST" action="/recommend">
