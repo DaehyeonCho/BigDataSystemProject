@@ -51,9 +51,8 @@ lackStr = ""  # 템플릿에 전달할 문자열
 
 graphMode = "today"
 
-# mongo.db.collection1.delete_many({"$or": [{"단백질(g)": {"$type": "string"}}, {"탄수화물(g)": {"$type": "string"}},
-#                                           {"지방(g)": {"$type": "string"}}, {"에너지(kcal)": {"$type": "string"}}]})
-
+mongo.db.collection1.delete_many({"$or": [{"단백질(g)": {"$type": "string"}}, {"탄수화물(g)": {"$type": "string"}},
+                                          {"지방(g)": {"$type": "string"}}, {"에너지(kcal)": {"$type": "string"}}]})
 
 date = datetime.now().strftime('%Y-%m-%d')  # 현재의 날짜를 저장
 TodayFood = mongo.db.collection2.find({"섭취일": date},
@@ -74,6 +73,23 @@ for food in TodayFood:
     curProtein += protein * food.get("섭취량(인분)")
     curFat += fat * food.get("섭취량(인분)")
     curKcal += kcal * food.get("섭취량(인분)")
+
+# 부족한 영양소 함유한 음식 상위 5개 출력
+# aggregate 쿼리는 pipeline 리스트 안에 작성
+def recommend_food(lack):
+    global recommend_result
+    nutdic = {"단백질": "단백질(g)", "탄수화물": "탄수화물(g)",
+              "지방": "지방(g)", "에너지": "에너지(kcal)"}
+    for item in lack:
+        pipelines = [{"$match": {'1회제공량': {"$lte": 100}}},
+                     {'$sort': {nutdic[item]: -1}},
+                     {'$limit': 5},
+                     {'$project': {"식품명": 1, "에너지(kcal)": 1, recKeyWord: 1, '_id': 0}}]
+
+        result = mongo.db.collection1.aggregate(pipelines)
+        recommend_result[item] = [doc["식품명"] for doc in result]
+    print(recommend_result)
+# 출력값 예시 : {'탄수화물': ['닭꼬치', '도미구이', '꿩불고기', '닭갈비', '더덕구이'], '단백질': ['닭꼬치', '도미구이', '꿩불고기', '닭갈비', '더덕구이']}
 
 
 def lackfound():
@@ -98,9 +114,11 @@ def lackfound():
         if (recKcalWoman - curKcal) > 0:
             lack.append("에너지")
 
+    recommend_food(lack)
+
 
 ###
-
+lackfound()
 if len(lack):
     for nutrient in lack:
         lackStr += f"{nutrient} "
@@ -114,10 +132,11 @@ def getRecFoodList(recKeyWord):
     recList.clear()
     recKeyWord += "(g)"
 
-    pipelines = [{'$sort': {recKeyWord: -1}},
+    pipelines = [{"$match":{'1회제공량':{"$lte":100}}},
+                 {'$sort': {recKeyWord: -1}},
                  {'$limit': 5},
                  {'$project': {"식품명": 1, "에너지(kcal)": 1, recKeyWord: 1, '_id': 0}}]
-    result = mongo.db.col_3.aggregate(pipelines)
+    result = mongo.db.collection1.aggregate(pipelines)
 
     for food in result:
         foodDict = {"식품명": food["식품명"],
@@ -201,24 +220,7 @@ def insert_collection(find_food, servings):  # 찾은 음식과 인분 수 넣�
     curProtein += protein * servings
     curFat += fat * servings
     curKcal += kcal * servings
-
-
-# 부족한 영양소 함유한 음식 상위 5개 출력
-# aggregate 쿼리는 pipeline 리스트 안에 작성
-def recommend_food(lack):
-    global recommend_result
-    nutdic = {"단백질": "단백질(g)", "탄수화물": "탄수화물(g)",
-              "지방": "지방(g)", "에너지": "에너지(kcal)"}
-    for item in lack:
-        pipeline = [
-            {"$project": {"_id": 0, "식품명": 1}},
-            {"$sort": {nutdic[item]: -1}},
-            {"$limit": 5}
-        ]
-        result = mongo.db.collection2.aggregate(pipeline)
-        recommend_result[item] = [doc["식품명"] for doc in result]
-
-# 출력값 예시 : {'탄수화물': ['닭꼬치', '도미구이', '꿩불고기', '닭갈비', '더덕구이'], '단백질': ['닭꼬치', '도미구이', '꿩불고기', '닭갈비', '더덕구이']}
+    lackfound()
 
 # 지난 7일간 각 영양소별로 일일마다 섭취한 양의 비율 원그래프로 그리는 함수
 
@@ -354,7 +356,7 @@ def searchFoodList():
                  {"$project": {"_id": 0, "식품명": 1,
                                "에너지(kcal)": 1, "1회제공량": 1, "내용량_단위": 1}},
                  {"$limit": 10}]
-    result = mongo.db.col_3.aggregate(pipelines)
+    result = mongo.db.collection1.aggregate(pipelines)
 
     for food in result:
         foodDict = {"식품명": food["식품명"],
@@ -370,7 +372,7 @@ def getFoodList(food="None"):
     foodName = request.form.get('foodName')
     servings = int(request.form.get('servings'))
     foodList.append(foodName)
-    find_food = mongo.db.col_3.find_one({"식품명": foodName},
+    find_food = mongo.db.collection1.find_one({"식품명": foodName},
                                         {"_id": 0, "식품명": 1, "탄수화물(g)": 1, "단백질(g)": 1, "지방(g)": 1, "에너지(kcal)": 1, "1회제공량": 1, "내용량_단위": 1})
 
     insert_collection(find_food, servings)
