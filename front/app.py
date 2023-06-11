@@ -1,7 +1,9 @@
+import datetime
 import base64
 from io import BytesIO
 from flask import Flask, render_template, request, redirect, url_for, Response
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from datetime import datetime, timedelta
 from flask_pymongo import PyMongo
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -42,7 +44,85 @@ recProtein = [recProteinMan, recProteinWoman]
 recFat = [recFatMan, recFatWoman]
 recKcal = [recKcalMan, recKcalWoman]
 
+recommend_result = {}
+
+lack = []  # 권장 섭취량 대비 부족한 성분, str, "탄수화물"/"단백질"/"지방"
+lackStr = ""  # 템플릿에 전달할 문자열
+
 graphMode = "today"
+
+# mongo.db.collection1.delete_many({"$or": [{"단백질(g)": {"$type": "string"}}, {"탄수화물(g)": {"$type": "string"}},
+#                                           {"지방(g)": {"$type": "string"}}, {"에너지(kcal)": {"$type": "string"}}]})
+
+
+date = datetime.now().strftime('%Y-%m-%d')  # 현재의 날짜를 저장
+TodayFood = mongo.db.collection2.find({"섭취일": date},
+                                      {"_id": 0, "식품명": 1, "섭취량(인분)": 1, "탄수화물(g)": 1, "단백질(g)": 1, "지방(g)": 1,
+                                       "에너지(kcal)": 1})
+
+for food in TodayFood:
+    # mongoDB에서 음식 정보 가져오기
+    # collection2에 컬렉션 이름 입력(새로 저장된 collection)
+    foodList.append(food.get("식품명"))  # index.html에 출력시켜줄 foodList에 식품명 저장
+    # 음식 정보 추출해서 cur 변수에 저장
+    carbo = food.get("탄수화물(g)")
+    protein = food.get("단백질(g)")
+    fat = food.get("지방(g)")
+    kcal = food.get("에너지(kcal)")
+
+    curCarb += carbo * food.get("섭취량(인분)")
+    curProtein += protein * food.get("섭취량(인분)")
+    curFat += fat * food.get("섭취량(인분)")
+    curKcal += kcal * food.get("섭취량(인분)")
+
+
+def lackfound():
+    global lack
+    lack = []  # 음식 들어올 때 확인하고, 확인할 때마다 초기화
+    if gender == "male":
+        if (recCarbMan - curCarb) > 0:
+            lack.append("탄수화물")
+        if (recProteinMan - curProtein) > 0:
+            lack.append("단백질")
+        if (recFatMan - curFat) > 0:
+            lack.append("지방")
+        if (recKcalMan - curKcal) > 0:
+            lack.append("에너지")
+    else:
+        if (recCarbWoman - curCarb) > 0:
+            lack.append("탄수화물")
+        if (recProteinWoman - curProtein) > 0:
+            lack.append("단백질")
+        if (recFatWoman - curFat) > 0:
+            lack.append("지방")
+        if (recKcalWoman - curKcal) > 0:
+            lack.append("에너지")
+
+
+###
+
+if len(lack):
+    for nutrient in lack:
+        lackStr += f"{nutrient} "
+
+    lackStr += "영양소가 부족합니다."
+
+
+def getRecFoodList(recKeyWord):
+    print(recKeyWord)
+    global recList
+    recList.clear()
+    recKeyWord += "(g)"
+
+    pipelines = [{'$sort': {recKeyWord: -1}},
+                 {'$limit': 5},
+                 {'$project': {"식품명": 1, "에너지(kcal)": 1, recKeyWord: 1, '_id': 0}}]
+    result = mongo.db.col_3.aggregate(pipelines)
+
+    for food in result:
+        foodDict = {"식품명": food["식품명"],
+                    "성분": str(food[recKeyWord]), "열량": str(food["에너지(kcal)"])}
+        recList.append(foodDict)
 
 
 def drawTodayGraph():
@@ -54,12 +134,12 @@ def drawTodayGraph():
         g = 1
 
     words = ["carbo", "protein", "fat", "kcal"]
-    # value1 = [curCarb, curProtein, curFat, curKcal]
-    # value2 = [recCarb[g], recProtein[g], recFat[g], recKcal[g]]
+    value1 = [curCarb, curProtein, curFat, curKcal]
+    value2 = [recCarb[g], recProtein[g], recFat[g], recKcal[g]]
 
     # 그래프 테스트용 데이터
-    value1 = [130, 57, 30, 1200]
-    value2 = [205, 60, 65, 2100]
+    # value1 = [130, 57, 30, 1200]
+    # value2 = [205, 60, 65, 2100]
     df = pd.DataFrame({'cur': value1, 'rec': value2}, index=words)
 
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -93,78 +173,144 @@ def drawTodayGraph():
     return png_as_string
 
 
-@app.route('/graph', methods=['POST'])
-def getGraph():
-    global graphMode
-    graphMode = request.form.get('graphMode')
-    return redirect(url_for('index'))
+def Week():  # 현재 주차의 월~일까지의 날짜 str list 반환
+    now = datetime.now()
+    start_of_week = now - timedelta(days=now.weekday())  # 현재 주의 월요일 날짜 계산
+    end_of_week = start_of_week + timedelta(days=6)  # 현재 주의 일요일 날짜 계산
+    Week_array = []  # 해당 주차의 날짜 반환용
+    # 월요일부터 일요일까지의 날짜 출력
+    current_date = start_of_week
+    while current_date <= end_of_week:
+        Week_array.append(current_date.strftime('%Y-%m-%d'))
+        current_date += timedelta(days=1)
+    return Week_array
 
 
-# 현재까지 섭취한 영양분 계산
-for food in foodList:
+def insert_collection(find_food, servings):  # 찾은 음식과 인분 수 넣으면
+    global curFat, curKcal, curCarb, curProtein
+    date = datetime.now().strftime('%Y-%m-%d')  # 현재의 날짜를 저장
+    new_data = {"식품명": find_food["식품명"], "섭취일": date, "섭취량(인분)": servings, "탄수화물(g)": find_food["탄수화물(g)"],
+                "단백질(g)": find_food["단백질(g)"], "지방(g)": find_food["지방(g)"], "에너지(kcal)": find_food["에너지(kcal)"]}
+    mongo.db.collection2.insert_one(new_data)  # 음식 저장하는 collection2에 데이터 추가
+    carbo = find_food.get("탄수화물(g)")
+    protein = find_food.get("단백질(g)")
+    fat = find_food.get("지방(g)")
+    kcal = find_food.get("에너지(kcal)")
 
-    # mongoDB에서 음식 정보 가져오기
-    # collection에 컬렉션 이름 입력
-    food_info = mongo.db.col_3.find_one(
-        {"name": foodList}, {"탄수화물(g)": 1, "단백질(g)": 1, "지방(g)": 1, "에너지(kcal)": 1})
-
-    # 음식 정보 추출해서 cur 변수에 저장
-    if food_info:
-        carbo = food_info.get("탄수화물(g)")
-        protein = food_info.get("단백질(g)")
-        fat = food_info.get("지방(g)")
-        kcal = food_info.get("에너지(kcal)")
-
-        curCarb += carbo * servings
-        curProtein += protein * servings
-        curFat += fat * servings
-        curKcal += kcal * servings
-        print(curCarb)
-
-lack = []  # 권장 섭취량 대비 부족한 성분, str, "탄수화물"/"단백질"/"지방"
-
-if gender == "male":
-    if (recCarbMan - curCarb) > 0:
-        lack.append("탄수화물")
-    if (recProteinMan - curProtein) > 0:
-        lack.append("단백질")
-    if (recFatMan - curFat) > 0:
-        lack.append("지방")
-    if (recKcalMan - curKcal) > 0:
-        lack.append("에너지")
-else:
-    if (recCarbWoman - curCarb) > 0:
-        lack.append("탄수화물")
-    if (recProteinWoman - curProtein) > 0:
-        lack.append("단백질")
-    if (recFatWoman - curFat) > 0:
-        lack.append("지방")
-    if (recKcalWoman - curKcal) > 0:
-        lack.append("에너지")
-
-###
-
-lackStr = ""  # 템플릿에 전달할 문자열
-
-#
-
-# 단순 성분별 내림차순
+    curCarb += carbo * servings
+    curProtein += protein * servings
+    curFat += fat * servings
+    curKcal += kcal * servings
 
 
-def getRecFoodList(recKeyWord):
-    print(recKeyWord)
-    global recList
-    recList.clear()
-    recKeyWord += "(g)"
-    pipelines = [{'$sort': {recKeyWord: -1}}, {'$limit': 5},
-                 {'$project': {"식품명": 1, "에너지(kcal)": 1, recKeyWord: 1, '_id': 0}}]
-    # 1g미만 수정 필요
-    result = mongo.db.col_3.aggregate(pipelines)
+# 부족한 영양소 함유한 음식 상위 5개 출력
+# aggregate 쿼리는 pipeline 리스트 안에 작성
+def recommend_food(lack):
+    global recommend_result
+    nutdic = {"단백질": "단백질(g)", "탄수화물": "탄수화물(g)",
+              "지방": "지방(g)", "에너지": "에너지(kcal)"}
+    for item in lack:
+        pipeline = [
+            {"$project": {"_id": 0, "식품명": 1}},
+            {"$sort": {nutdic[item]: -1}},
+            {"$limit": 5}
+        ]
+        result = mongo.db.collection2.aggregate(pipeline)
+        recommend_result[item] = [doc["식품명"] for doc in result]
 
-    for food in result:
-        foodDict = {"식품명": food["식품명"],
-                    "성분": str(food[recKeyWord]), "열량": str(food["에너지(kcal)"])}
-        recList.append(foodDict)
+# 출력값 예시 : {'탄수화물': ['닭꼬치', '도미구이', '꿩불고기', '닭갈비', '더덕구이'], '단백질': ['닭꼬치', '도미구이', '꿩불고기', '닭갈비', '더덕구이']}
+
+# 지난 7일간 각 영양소별로 일일마다 섭취한 양의 비율 원그래프로 그리는 함수
+
+
+def nutrient_pie_chart():
+    # 오늘 날짜 계산
+    today = datetime.now()
+
+    # 7일 전 날짜 계산
+    seven_days_ago = today - timedelta(days=7)
+
+    today_str = today.strftime('%Y-%m-%d')
+    seven_days_ago_str = seven_days_ago.strftime('%Y-%m-%d')
+
+    # 날짜별 영양소 섭취량 조회
+    pipeline = [
+        {"$match": {"섭취일": {"$gte": seven_days_ago_str, "$lt": today_str}}},
+        {"$group": {
+            "_id": "$섭취일",
+            "total_carbohydrate": {"$sum": "$탄수화물(g)"},
+            "total_protein": {"$sum": "$단백질(g)"},
+            "total_fat": {"$sum": "$지방(g)"},
+            "total_kcal": {"$sum": "$에너지(kcal)"}
+        }}
+    ]
+
+    result = mongo.db.collection2.aggregate(pipeline)
+    data = list(result)
+
+    # 날짜별 영양소 섭취량 총합 계산
+    dates = []
+    carbohydrate_totals = []
+    protein_totals = []
+    fat_totals = []
+    kcal_totals = []
+
+    for item in data:
+        graph_date = item["_id"]
+        total_carbohydrate = item["total_carbohydrate"]
+        total_protein = item["total_protein"]
+        total_fat = item["total_fat"]
+        total_kcal = item["total_kcal"]
+
+        dates.append(graph_date)
+        carbohydrate_totals.append(total_carbohydrate)
+        protein_totals.append(total_protein)
+        fat_totals.append(total_fat)
+        kcal_totals.append(total_kcal)
+
+    # dates = ['2023-06-04', '2023-06-05', '2023-06-06',
+    #          '2023-06-07', '2023-06-08', '2023-06-09', '2023-06-10']
+    # carbohydrate_totals = [12, 13, 21, 32, 10, 9, 29]
+    # protein_totals = [11, 10, 20, 18, 9, 30, 17]
+    # fat_totals = [9, 8, 10, 19, 4, 14, 21]
+    # kcal_totals = [2100, 2400, 2323, 2200, 2199, 2345, 2321]
+
+    # 원 그래프 그리기
+    labels = dates
+    colors = ["#FFA500", "#FFD700", "#FFA07A",
+              "#FF6347", "#FF8C00", "#FF4500", "#FF7F50"]
+
+    fig, axes = plt.subplots(2, 2)  # 2x2 서브플롯 생성
+
+    # 탄수화물 그래프
+    axes[0, 0].pie(carbohydrate_totals, labels=labels,
+                   colors=colors, autopct='%1.1f%%', startangle=90)
+    axes[0, 0].set_title("Carbohydrate Intake Ratio")
+
+    # 단백질 그래프
+    axes[0, 1].pie(protein_totals, labels=labels, colors=colors,
+                   autopct='%1.1f%%', startangle=90)
+    axes[0, 1].set_title("Protein Intake Ratio")
+
+    # 지방 그래프
+    axes[1, 0].pie(fat_totals, labels=labels, colors=colors,
+                   autopct='%1.1f%%', startangle=90)
+    axes[1, 0].set_title("Fat Intake Ratio")
+
+    # 에너지 그래프
+    axes[1, 1].pie(kcal_totals, labels=labels, colors=colors,
+                   autopct='%1.1f%%', startangle=90)
+    axes[1, 1].set_title("Energy Intake Ratio")
+
+    plt.tight_layout()
+
+    canvas = FigureCanvas(fig)
+    png_output = BytesIO()
+    canvas.print_png(png_output)
+    png_output.seek(0)
+    png_as_string = base64.b64encode(png_output.getvalue()).decode()
+
+    return png_as_string
 
 
 @app.route('/')
@@ -173,7 +319,7 @@ def index():
     if graphMode == "today":
         image_data = drawTodayGraph()
     else:
-        image_data = drawTodayGraph()
+        image_data = nutrient_pie_chart()
         # 추후 주간 그래프 그리는 함수 호출로 수정
 
     params = {
@@ -189,7 +335,9 @@ def index():
         "recList": recList,
         "recKeyWord": recKeyWord+"(g)",
         "foodOptions": foodOptions,
-        "graph": "data:image/png;base64," + image_data
+        "graph": "data:image/png;base64," + image_data,
+        "lackStr": lackStr,
+        "recommend_result": recommend_result
     }
 
     return render_template('index.html', params=params)
@@ -198,10 +346,14 @@ def index():
 @app.route('/search', methods=['POST'])
 def searchFoodList():
     global foodName, foodDict
-    foodName = request.form.get('food')
-    pipelines = [{"$match": {"식품명": {"$regex": "^"+foodName}}}, {"$sort": {"에너지(kcal)": 1}}, {
-        "$project": {"_id": 0, "식품명": 1, "에너지(kcal)": 1, "1회제공량": 1, "내용량_단위": 1}}, {"$limit": 10}]
 
+    foodName = request.form.get('food')
+    print(foodName)
+    pipelines = [{"$match": {"식품명": {"$regex": "^"+foodName}}},
+                 {"$sort": {"에너지(kcal)": 1}},
+                 {"$project": {"_id": 0, "식품명": 1,
+                               "에너지(kcal)": 1, "1회제공량": 1, "내용량_단위": 1}},
+                 {"$limit": 10}]
     result = mongo.db.col_3.aggregate(pipelines)
 
     for food in result:
@@ -214,11 +366,15 @@ def searchFoodList():
 
 @app.route('/list', methods=['POST'])
 def getFoodList(food="None"):
-    global servings, foodName
+    global servings, foodName, foodList
     foodName = request.form.get('foodName')
-    print(foodName)
+    servings = int(request.form.get('servings'))
     foodList.append(foodName)
-    servings = request.form.get('servings')
+    find_food = mongo.db.col_3.find_one({"식품명": foodName},
+                                        {"_id": 0, "식품명": 1, "탄수화물(g)": 1, "단백질(g)": 1, "지방(g)": 1, "에너지(kcal)": 1, "1회제공량": 1, "내용량_단위": 1})
+
+    insert_collection(find_food, servings)
+
     return redirect(url_for('index'))
 
 
@@ -233,8 +389,9 @@ def getGender():
     print(foodList)
     return redirect(url_for('index'))
 
-
 # 검색할 성분 읽어오기
+
+
 @app.route('/recommend', methods=['POST'])
 def getRecommendWord():
     global recKeyWord
@@ -242,6 +399,13 @@ def getRecommendWord():
         recKeyWord = request.form.get('recommend')
         getRecFoodList(recKeyWord=recKeyWord)
         return redirect(url_for('index'))
+
+
+@app.route('/graph', methods=['POST'])
+def getGraph():
+    global graphMode
+    graphMode = request.form.get('graphMode')
+    return redirect(url_for('index'))
 
 
 if __name__ == "__main__":
