@@ -168,11 +168,11 @@ def nutrient_pie_chart():
     data = list(result)
 
     # 날짜별 영양소 섭취량 총합 계산
-    dates = ['2023-06-11', '2023-06-10', '2023-06-09', '2023-06-08', '2023-06-07', '2023-06-06', '2023-06-05']
-    carbohydrate_totals = [10, 11, 13, 14, 20, 19, 21]
-    protein_totals = [20, 21, 23, 32, 28, 26, 34]
-    fat_totals = [2, 4, 9, 11, 3, 7, 14]
-    kcal_totals = [2100, 2300, 2211, 2321, 2400, 2500, 2345]
+    dates = []
+    carbohydrate_totals = []
+    protein_totals = []
+    fat_totals = []
+    kcal_totals = []
 
     for item in data:
         graph_date = item["_id"]
