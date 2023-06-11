@@ -123,7 +123,7 @@ def insert_collection(find_food, servings):  # 찾은 음식과 인분 수 넣�
     curFat += fat * servings
     curKcal += kcal * servings
 
-
+#################################################
 # 부족한 영양소 함유한 음식 상위 5개 출력
 # aggregate 쿼리는 pipeline 리스트 안에 작성
 def recommend_food(lack):
@@ -144,14 +144,17 @@ def recommend_food(lack):
 # 지난 7일간 각 영양소별로 일일마다 섭취한 양의 비율 원그래프로 그리는 함수
 def nutrient_pie_chart():
     # 오늘 날짜 계산
-    today = datetime.date.today()
+    today = datetime.now()
 
     # 7일 전 날짜 계산
-    seven_days_ago = today - datetime.timedelta(days=7)
+    seven_days_ago = today - timedelta(days=7)
+
+    today_str = today.strftime('%Y-%m-%d')
+    seven_days_ago_str = seven_days_ago.strftime('%Y-%m-%d')
 
     # 날짜별 영양소 섭취량 조회
     pipeline = [
-        {"$match": {"섭취일": {"$gte": seven_days_ago, "$lte": today}}},
+        {"$match": {"섭취일": {"$gte": seven_days_ago_str, "$lte": today_str}}},
         {"$group": {
             "_id": "$섭취일",
             "total_carbohydrate": {"$sum": "$탄수화물(g)"},
@@ -165,11 +168,11 @@ def nutrient_pie_chart():
     data = list(result)
 
     # 날짜별 영양소 섭취량 총합 계산
-    dates = []
-    carbohydrate_totals = []
-    protein_totals = []
-    fat_totals = []
-    kcal_totals = []
+    dates = ['2023-06-11', '2023-06-10', '2023-06-09', '2023-06-08', '2023-06-07', '2023-06-06', '2023-06-05']
+    carbohydrate_totals = [10, 11, 13, 14, 20, 19, 21]
+    protein_totals = [20, 21, 23, 32, 28, 26, 34]
+    fat_totals = [2, 4, 9, 11, 3, 7, 14]
+    kcal_totals = [2100, 2300, 2211, 2321, 2400, 2500, 2345]
 
     for item in data:
         graph_date = item["_id"]
@@ -188,30 +191,27 @@ def nutrient_pie_chart():
     labels = dates
     colors = ["#FFA500", "#FFD700", "#FFA07A", "#FF6347", "#FF8C00", "#FF4500", "#FF7F50"]
 
-    fig, ax = plt.subplots()
-    ax.pie(carbohydrate_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.set_title("탄수화물 섭취 비율")
+    fig, axes = plt.subplots(2, 2)  # 2x2 서브플롯 생성
 
+    # 탄수화물 그래프
+    axes[0, 0].pie(carbohydrate_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+    axes[0, 0].set_title("Carbohydrate Intake Ratio")
+
+    # 단백질 그래프
+    axes[0, 1].pie(protein_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+    axes[0, 1].set_title("Protein Intake Ratio")
+
+    # 지방 그래프
+    axes[1, 0].pie(fat_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+    axes[1, 0].set_title("Fat Intake Ratio")
+
+    # 에너지 그래프
+    axes[1, 1].pie(kcal_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+    axes[1, 1].set_title("Energy Intake Ratio")
+
+    plt.tight_layout()
     plt.show()
-
-    fig, ax = plt.subplots()
-    ax.pie(protein_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.set_title("단백질 섭취 비율")
-
-    plt.show()
-
-    fig, ax = plt.subplots()
-    ax.pie(fat_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.set_title("지방 섭취 비율")
-
-    plt.show()
-
-    fig, ax = plt.subplots()
-    ax.pie(kcal_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.set_title("에너지 섭취 비율")
-
-    plt.show()
-
+###################################################################
 @app.route('/')
 def index():
     return render_template('index.html', foodList=foodList, gender_selected=gender, recommend_selected=recommend,
