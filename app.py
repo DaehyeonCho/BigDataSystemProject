@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_pymongo import PyMongo
 from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/nutrient"
@@ -140,7 +141,76 @@ def recommend_food(lack):
 
 # 출력값 예시 : {'탄수화물': ['닭꼬치', '도미구이', '꿩불고기', '닭갈비', '더덕구이'], '단백질': ['닭꼬치', '도미구이', '꿩불고기', '닭갈비', '더덕구이']}
 
+# 지난 7일간 각 영양소별로 일일마다 섭취한 양의 비율 원그래프로 그리는 함수
+def nutrient_pie_chart():
+    # 오늘 날짜 계산
+    today = datetime.date.today()
 
+    # 7일 전 날짜 계산
+    seven_days_ago = today - datetime.timedelta(days=7)
+
+    # 날짜별 영양소 섭취량 조회
+    pipeline = [
+        {"$match": {"섭취일": {"$gte": seven_days_ago, "$lte": today}}},
+        {"$group": {
+            "_id": "$섭취일",
+            "total_carbohydrate": {"$sum": "$탄수화물(g)"},
+            "total_protein": {"$sum": "$단백질(g)"},
+            "total_fat": {"$sum": "$지방(g)"},
+            "total_kcal": {"$sum": "$에너지(kcal)"}
+        }}
+    ]
+
+    result = mongo.db.collection2.aggregate(pipeline)
+    data = list(result)
+
+    # 날짜별 영양소 섭취량 총합 계산
+    dates = []
+    carbohydrate_totals = []
+    protein_totals = []
+    fat_totals = []
+    kcal_totals = []
+
+    for item in data:
+        graph_date = item["_id"]
+        total_carbohydrate = item["total_carbohydrate"]
+        total_protein = item["total_protein"]
+        total_fat = item["total_fat"]
+        total_kcal = item["total_kcal"]
+
+        dates.append(graph_date)
+        carbohydrate_totals.append(total_carbohydrate)
+        protein_totals.append(total_protein)
+        fat_totals.append(total_fat)
+        kcal_totals.append(total_kcal)
+
+    # 원 그래프 그리기
+    labels = dates
+    colors = ["#FFA500", "#FFD700", "#FFA07A", "#FF6347", "#FF8C00", "#FF4500", "#FF7F50"]
+
+    fig, ax = plt.subplots()
+    ax.pie(carbohydrate_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+    ax.set_title("Carbohydrate Intake Ratio")
+
+    plt.show()
+
+    fig, ax = plt.subplots()
+    ax.pie(protein_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+    ax.set_title("Protein Intake Ratio")
+
+    plt.show()
+
+    fig, ax = plt.subplots()
+    ax.pie(fat_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+    ax.set_title("Fat Intake Ratio")
+
+    plt.show()
+
+    fig, ax = plt.subplots()
+    ax.pie(kcal_totals, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+    ax.set_title("Kcal Intake Ratio")
+
+    plt.show()
 
 @app.route('/')
 def index():
