@@ -162,7 +162,7 @@ def drawTodayGraph():
         g = 1
 
     words = ["carbo", "protein", "fat", "kcal"]
-    value1 = [curCarb, curProtein, curFat, curKcal]
+    value1 = [float(f"{curCarb:.2f}"),  float(f"{curProtein:.2f}"),  float(f"{curFat:.2f}"),  float(f"{curKcal:.2f}")]
     value2 = [recCarb[g], recProtein[g], recFat[g], recKcal[g]]
 
     # 그래프 테스트용 데이터
@@ -339,10 +339,10 @@ def index():
         "recommend_selected": recKeyWord,
         "graphMode_selected": graphMode,
         "lackStr": lackStr,
-        "curCarb": str(curCarb),
-        "curProtein": str(curProtein),
-        "curFat": str(curFat),
-        "curKcal": str(curKcal),
+        "curCarb": str(f"{curCarb:.2f}"),
+        "curProtein": str(f"{curProtein:.2f}"),
+        "curFat": str(f"{curFat:.2f}"),
+        "curKcal": str(f"{curKcal:.2f}"),
         "recList": recList,
         "recKeyWord": recKeyWord+"(g)",
         "foodOptions": foodOptions,
@@ -356,7 +356,7 @@ def index():
 
 @app.route('/search', methods=['POST'])
 def searchFoodList():
-    global foodName, foodDict
+    global foodName, foodDict,foodOptions
 
     foodName = request.form.get('food')
     print(foodName)
@@ -366,7 +366,7 @@ def searchFoodList():
                                "에너지(kcal)": 1, "1회제공량": 1, "내용량_단위": 1}},
                  {"$limit": 10}]
     result = mongo.db.collection1.aggregate(pipelines)
-
+    foodOptions=[]
     for food in result:
         foodDict = {"식품명": food["식품명"],
                     "1회제공량": str(food["1회제공량"]), "단위": food["내용량_단위"]}
