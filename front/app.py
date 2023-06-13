@@ -56,7 +56,6 @@ recKcal = [recKcalMan, recKcalWoman]
 recommend_result = {}
 
 lack = []  # 권장 섭취량 대비 부족한 성분, str, "탄수화물"/"단백질"/"지방"
-lackStr = ""  # 템플릿에 전달할 문자열
 
 graphMode = "today"
 
@@ -122,6 +121,26 @@ def lackfound():
             lack.append("지방")
         if (recKcalWoman - curKcal) > 0:
             lack.append("에너지")
+
+    # 권장 섭취량보다 현재 섭취량이 클 경우 해당 영양소를 제거
+    if gender == "male":
+        if "탄수화물" in lack and (recCarbMan - curCarb) <= 0:
+            lack.remove("탄수화물")
+        if "단백질" in lack and (recProteinMan - curProtein) <= 0:
+            lack.remove("단백질")
+        if "지방" in lack and (recFatMan - curFat) <= 0:
+            lack.remove("지방")
+        if "에너지" in lack and (recKcalMan - curKcal) <= 0:
+            lack.remove("에너지")
+    else:
+        if "탄수화물" in lack and (recCarbWoman - curCarb) <= 0:
+            lack.remove("탄수화물")
+        if "단백질" in lack and (recProteinWoman - curProtein) <= 0:
+            lack.remove("단백질")
+        if "지방" in lack and (recFatWoman - curFat) <= 0:
+            lack.remove("지방")
+        if "에너지" in lack and (recKcalWoman - curKcal) <= 0:
+            lack.remove("에너지")
 
     recommend_food(lack)
 
