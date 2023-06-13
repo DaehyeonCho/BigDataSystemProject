@@ -129,8 +129,10 @@ def lackfound():
 ###
 lackfound()
 if len(lack):
+    lackStr = ""
+
     for nutrient in lack:
-        lackStr += f"{nutrient}, "
+        lackStr += f"{nutrient} "
 
     lackStr += "영양소가 부족합니다."
 
